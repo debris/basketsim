@@ -6,7 +6,7 @@ use crate::schema::users;
 pub struct NewUser<'a> {
 	pub email: &'a str,
 	pub name: &'a str,
-	/// Hashes password.
+	/// Hashed password.
 	pub password: &'a str,
 }
 

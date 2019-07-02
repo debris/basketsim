@@ -6,3 +6,5 @@ edition = "2018"
 
 [dependencies]
 diesel = { version = "1.0.0", features = ["mysql"] }
+dotenv = "0.14"
+byteorder = "1.0"

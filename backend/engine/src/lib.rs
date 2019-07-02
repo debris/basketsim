@@ -1,34 +1,29 @@
 #[macro_use]
 extern crate diesel;
 
-mod league;
-mod player;
+mod database;
+mod generator;
+mod models;
 mod schema;
-mod team;
-mod user;
 
 use std::io;
-pub use league::NewLeague;
-pub use team::NewTeam;
-pub use user::NewUser;
-pub use player::NewPlayer;
+use database::Database;
 
-pub struct Engine;
+pub struct Settings<'a> {
+	database_url: &'a str,
+}
 
-impl Engine {
-	pub fn new_user<'a>(&mut self, _user: NewUser<'a>) -> io::Result<i32> {
-		unimplemented!();
-	}
+pub struct Game {
+	db: Database,
+}
 
-	pub fn new_league(&mut self, _league: NewLeague) -> io::Result<i32> {
-		unimplemented!();
-	}
+impl Game {
+	pub fn start(settings: Settings) -> io::Result<Game> {
+		let game = Game {
+			db: Database::new(settings.database_url)?,
+		};
 
-	pub fn new_team<'a>(&mut self, _team: NewTeam<'a>) -> io::Result<i32> {
-		unimplemented!();
-	}
-
-	pub fn new_player<'a>(&mut self, _player: NewPlayer<'a>) -> io::Result<i32> {
-		unimplemented!();
+		Ok(game)
 	}
 }
+
