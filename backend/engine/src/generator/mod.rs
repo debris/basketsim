@@ -1,4 +1,5 @@
 pub mod player;
+pub mod team;
 
 struct Seed(u32);
 

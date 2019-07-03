@@ -1,11 +1,13 @@
 use std::io;
-use diesel::connection::Connection;
+use diesel::connection::{Connection, AnsiTransactionManager, TransactionManager};
 use diesel::mysql::MysqlConnection;
+use diesel::{QueryDsl, ExpressionMethods, RunQueryDsl};
+use schema::{players, teams};
 
 use crate::schema;
 use crate::models::{
 	league::NewLeague,
-	team::NewTeam,
+	team::{NewTeam, Team},
 	user::NewUser,
 	player::{NewPlayer, Player}
 };
@@ -25,6 +27,21 @@ impl Database {
 		Ok(engine)
 	}
 
+	pub fn execute_batch<T, F: Fn(&mut Database) -> io::Result<T>>(&mut self, batch: F) -> io::Result<T> {
+		let transaction = AnsiTransactionManager::new();
+		transaction.begin_transaction(&self.connection).expect("TODO");
+		match batch(self) {
+			Ok(result) => {
+				transaction.commit_transaction(&self.connection).expect("TODO");
+				Ok(result)
+			},
+			Err(err) => {
+				transaction.rollback_transaction(&self.connection).expect("TODO");
+				Err(err)
+			}
+		}
+	}
+
 	pub fn new_user<'a>(&mut self, _user: NewUser<'a>) -> io::Result<i32> {
 		unimplemented!();
 	}
@@ -33,14 +50,34 @@ impl Database {
 		unimplemented!();
 	}
 
-	pub fn new_team<'a>(&mut self, _team: NewTeam<'a>) -> io::Result<i32> {
+	pub fn new_team<'a>(&mut self, team: NewTeam<'a>) -> io::Result<i32> {
+		diesel::insert_into(teams::table)
+			.values(team)
+			.execute(&self.connection)
+			.expect("TODO");
+
+		let team: Team = teams::table.order(teams::id.desc())
+			.first(&self.connection)
+			.expect("TODO");
+
+		Ok(team.id)
+	}
+
+	pub fn get_team(&self, id: i32) -> io::Result<Team> {
+		let team = teams::table.find(id)
+			.first(&self.connection)
+			.expect("TODO");
+
+		Ok(team)
+	}
+
+	/// Assigns user to a first team without an owner.
+	/// Returns `Ok(None)` if such team does not exist.
+	pub fn assign_user_to_a_team(&mut self, _user_id: i32) -> io::Result<Option<i32>> {
 		unimplemented!();
 	}
 
 	pub fn new_player<'a>(&mut self, player: NewPlayer<'a>) -> io::Result<i32> {
-		use diesel::{QueryDsl, ExpressionMethods, RunQueryDsl};
-		use schema::players;
-
 		diesel::insert_into(players::table)
 			.values(player)
 			.execute(&self.connection)
@@ -54,9 +91,6 @@ impl Database {
 	}
 
 	pub fn get_player(&self, id: i32) -> io::Result<Player> {
-		use diesel::{QueryDsl, RunQueryDsl};
-		use schema::players;
-
 		let player = players::table.find(id)
 			.first(&self.connection)
 			.expect("TODO");
